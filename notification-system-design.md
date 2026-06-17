@@ -485,3 +485,68 @@ Use **Redis caching + pagination together**:
 - Pagination for large history lists
 
 This provides a balance between performance, cost, and system simplicity.
+
+
+
+## Stage 5
+
+### Problem
+HR clicks "Notify All" and 50,000 students must receive both:
+- Email notification
+- In-app notification
+
+The current pseudocode:
+is inefficient because it processes notifications sequentially.
+
+---
+
+### 1. Issues in Current Approach
+- Sequential processing → very slow for 50,000 users
+- High API latency
+- Risk of system timeout
+- No fault tolerance (one failure can affect flow)
+
+---
+
+### 2. Improved Solution: Asynchronous Batch Processing
+
+Instead of processing in a loop synchronously:
+
+#### Approach:
+- Push notification jobs into a queue (Kafka / RabbitMQ / SQS)
+- Worker services process notifications in parallel
+- Send email + in-app notification asynchronously
+
+---
+
+### 3. Optimized Pseudocode
+for batch in split(student_ids, batch_size):
+    push_to_queue(batch, message)
+    
+Worker:
+
+---
+
+### 4. Benefits
+- High scalability (handles 50K+ easily)
+- Faster processing using parallel workers
+- Fault tolerance via retry mechanisms
+- Non-blocking API response
+
+---
+
+### 5. Tradeoffs
+- More complex architecture
+- Requires message queue setup
+- Eventual consistency (slight delay in delivery)
+- Monitoring and retry handling needed
+
+---
+
+### 6. Final Recommendation
+Use:
+- Message Queue (Kafka/RabbitMQ)
+- Worker-based processing
+- Batch size control (1000–5000 users per batch)
+
+This ensures reliable and scalable bulk notification delivery.
