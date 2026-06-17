@@ -360,3 +360,44 @@ WHERE notification_id = 'notification-id';
 ## Conclusion
 
 PostgreSQL provides reliability, consistency, and efficient querying capabilities for notification systems. With proper indexing, partitioning, caching, and scaling strategies, the system can handle increasing data volumes effectively.
+
+
+
+
+## Stage 3
+
+### 1. Is the query accurate?
+
+The given query is not fully accurate.
+
+SELECT *
+FROM notifications
+WHERE studentID = 1042 AND isRead = false
+ORDER BY createdAt ASC;
+
+### 2. Why is this query slow?
+
+- Large dataset (5 million rows)
+- No proper indexing
+- Full table scan + sorting
+
+### 3. Improved approach
+
+CREATE INDEX idx_student_unread_created
+ON notifications (studentID, isRead, createdAt);
+
+### 4. Indexing every column is not good
+
+- Slows INSERT/UPDATE/DELETE
+- Wastes storage
+- Not all indexes are used
+
+### 5. Placement notifications (last 7 days)
+
+SELECT studentID, *
+FROM notifications
+WHERE notificationType = 'Placement'
+AND createdAt >= NOW() - INTERVAL 7 DAY;
+
+CREATE INDEX idx_type_created
+ON notifications (notificationType, createdAt);
