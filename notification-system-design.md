@@ -401,3 +401,87 @@ AND createdAt >= NOW() - INTERVAL 7 DAY;
 
 CREATE INDEX idx_type_created
 ON notifications (notificationType, createdAt);
+
+
+
+## Stage 4
+
+### Problem
+Notifications are being fetched from the database on every page load for every student, causing high DB load and poor performance.
+
+---
+
+### 1. Suggested Solution: Caching Layer (Redis)
+
+Use a caching system like Redis to store frequently accessed unread notifications.
+
+#### Approach:
+- When notifications are fetched first time → store in cache
+- On next request → serve from cache instead of DB
+- Update cache when a new notification arrives or when user reads one
+
+#### Example:
+- Key: `student:{studentId}:notifications`
+- Value: list of unread notifications
+
+---
+
+### ✔ Benefits:
+- Reduces database load significantly
+- Very fast response time (in-memory access)
+- Improves scalability for large traffic
+
+### ❌ Tradeoffs:
+- Cache invalidation complexity
+- Risk of stale data if not updated properly
+- Extra infrastructure cost (Redis server)
+
+---
+
+### 2. Alternative Solution: Pagination + Lazy Loading
+
+Instead of loading all notifications at once:
+- Load only first 20–50 notifications
+- Fetch more using “Load More” or infinite scroll
+
+---
+
+### ✔ Benefits:
+- Reduces initial load time
+- Less memory usage on frontend and backend
+- Simple to implement without extra tools
+
+### ❌ Tradeoffs:
+- Still hits DB frequently
+- Not ideal for high traffic systems
+- User may experience slight delay while loading more data
+
+---
+
+### 3. Advanced Solution: Read-Through Cache + Event Updates
+
+Combine DB + cache + event-driven updates:
+- Write notification → DB + cache update
+- Read → served from cache
+- Background sync ensures consistency
+
+---
+
+### ✔ Benefits:
+- Best performance at scale
+- Near real-time updates
+- Reduces DB dependency
+
+### ❌ Tradeoffs:
+- Complex architecture
+- Harder debugging
+- Requires message queue (Kafka/RabbitMQ)
+
+---
+
+### Final Recommendation
+Use **Redis caching + pagination together**:
+- Cache for unread notifications
+- Pagination for large history lists
+
+This provides a balance between performance, cost, and system simplicity.
