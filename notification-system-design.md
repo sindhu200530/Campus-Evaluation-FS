@@ -189,3 +189,174 @@ ws://localhost:8080/ws/notifications
 * Keep JSON structures consistent.
 * Support scalability through WebSocket-based real-time delivery.
 * Ensure extensibility for future notification types.
+
+
+
+# Stage 2
+
+## Persistent Storage Choice
+
+I would recommend using a **Relational Database Management System (RDBMS)** such as **PostgreSQL** for storing notifications.
+
+### Reasons for Choosing PostgreSQL
+
+* Supports ACID properties, ensuring reliable data storage.
+* Efficient querying capabilities for filtering notifications.
+* Supports indexing for improved read performance.
+* Scales vertically and supports partitioning for larger datasets.
+* Well-suited for structured notification data.
+
+---
+
+## Database Schema
+
+### notifications Table
+
+| Column Name     | Data Type    | Constraints               |
+| --------------- | ------------ | ------------------------- |
+| notification_id | UUID         | PRIMARY KEY               |
+| user_id         | VARCHAR(50)  | NOT NULL                  |
+| title           | VARCHAR(255) | NOT NULL                  |
+| message         | TEXT         | NOT NULL                  |
+| type            | VARCHAR(50)  | NOT NULL                  |
+| priority        | VARCHAR(20)  | NOT NULL                  |
+| is_read         | BOOLEAN      | DEFAULT FALSE             |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP |
+
+---
+
+## SQL Schema Definition
+
+```sql
+CREATE TABLE notifications (
+    notification_id UUID PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    priority VARCHAR(20) NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## Potential Problems with Increasing Data Volume
+
+### 1. Slower Query Performance
+
+As the number of notifications grows, retrieving notifications may become slower.
+
+**Solution:**
+
+* Create indexes on frequently queried columns.
+
+```sql
+CREATE INDEX idx_user_id ON notifications(user_id);
+CREATE INDEX idx_created_at ON notifications(created_at);
+```
+
+---
+
+### 2. Large Table Size
+
+Millions of records can increase storage requirements.
+
+**Solution:**
+
+* Implement table partitioning based on date.
+* Archive older notifications periodically.
+
+---
+
+### 3. High Read Traffic
+
+Many users fetching notifications simultaneously can overload the database.
+
+**Solution:**
+
+* Use caching mechanisms such as Redis.
+* Introduce read replicas.
+
+---
+
+### 4. Scalability Challenges
+
+Single database instances may become bottlenecks.
+
+**Solution:**
+
+* Use horizontal scaling strategies.
+* Employ database sharding when necessary.
+
+---
+
+## SQL Queries Based on Stage 1 APIs
+
+### Create Notification
+
+```sql
+INSERT INTO notifications (
+    notification_id,
+    user_id,
+    title,
+    message,
+    type,
+    priority
+)
+VALUES (
+    gen_random_uuid(),
+    '12345',
+    'Payment Successful',
+    'Your payment of ₹500 has been processed successfully.',
+    'PAYMENT',
+    'HIGH'
+);
+```
+
+---
+
+### Retrieve Notifications for a User
+
+```sql
+SELECT *
+FROM notifications
+WHERE user_id = '12345'
+ORDER BY created_at DESC;
+```
+
+---
+
+### Mark a Notification as Read
+
+```sql
+UPDATE notifications
+SET is_read = TRUE
+WHERE notification_id = 'notification-id';
+```
+
+---
+
+### Mark All Notifications as Read
+
+```sql
+UPDATE notifications
+SET is_read = TRUE
+WHERE user_id = '12345';
+```
+
+---
+
+### Delete a Notification
+
+```sql
+DELETE FROM notifications
+WHERE notification_id = 'notification-id';
+```
+
+---
+
+## Conclusion
+
+PostgreSQL provides reliability, consistency, and efficient querying capabilities for notification systems. With proper indexing, partitioning, caching, and scaling strategies, the system can handle increasing data volumes effectively.
